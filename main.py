@@ -291,3 +291,37 @@ def start_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_job(send_reminders, "interval", minutes=1)
     scheduler.start()
+
+    # =====================================================
+# 📅 AVAILABLE TIME SLOTS
+# =====================================================
+
+@app.get("/available-times")
+def available_times(date: str):
+    db = SessionLocal()
+
+    # робочі години барбера
+    WORK_START = 10
+    WORK_END = 19
+
+    selected_date = datetime.fromisoformat(date)
+
+    start_day = selected_date.replace(hour=0, minute=0, second=0)
+    end_day = selected_date.replace(hour=23, minute=59, second=59)
+
+    # записи на цей день
+    bookings = db.query(Appointment).filter(
+        Appointment.datetime >= start_day,
+        Appointment.datetime <= end_day,
+        Appointment.status != "cancelled"
+    ).all()
+
+    booked_hours = [b.datetime.hour for b in bookings]
+
+    free_slots = []
+    for hour in range(WORK_START, WORK_END):
+        if hour not in booked_hours:
+            free_slots.append(f"{hour}:00")
+
+    db.close()
+    return free_slots

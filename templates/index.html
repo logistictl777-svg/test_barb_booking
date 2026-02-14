@@ -39,6 +39,11 @@
 
 <input id="name" placeholder="Ваше ім'я">
 <input id="date" type="date">
+
+<h3>⏰ Виберіть час</h3>
+<div id="timeSlots"></div>
+
+<input type="hidden" id="selectedTime">
 <input id="phone" placeholder="Телефон">
 <select id="datetime"></select>
 
@@ -161,7 +166,16 @@ async function createBooking() {
     const name = document.getElementById("name").value;
     const phone = document.getElementById("phone").value;
     const service = document.getElementById("service").value;
-    const datetime = document.getElementById("datetime").value;
+    
+    const date = document.getElementById("date").value;
+const time = document.getElementById("selectedTime").value;
+
+if(!time){
+    showMessage("Оберіть час ⏰");
+    return;
+}
+
+const datetime = date + "T" + time;
 
     let url = "/book";
     let method = "POST";
@@ -234,6 +248,41 @@ document.getElementById("date").addEventListener("change", generateTimeSlots);
 
 generateTimeSlots();
 checkAdmin();   // 🔥 тепер запускаємо перевірку
+
+// ===============================
+// ⏰ Завантаження доступних годин
+// ===============================
+
+// коли обрали дату
+document.getElementById("date").addEventListener("change", loadTimes);
+
+async function loadTimes(){
+    const date = document.getElementById("date").value;
+    if(!date) return;
+
+    const res = await fetch(`/available-times?date=${date}`);
+    const times = await res.json();
+
+    const container = document.getElementById("timeSlots");
+    container.innerHTML = "";
+
+    times.forEach(t=>{
+        container.innerHTML += 
+        `<div class="time-slot" onclick="selectTime('${t}', this)">
+            ${t}
+        </div>`;
+    });
+}
+
+// вибір часу
+function selectTime(time, el){
+    document.querySelectorAll(".time-slot")
+        .forEach(x=>x.classList.remove("selected"));
+
+    el.classList.add("selected");
+    document.getElementById("selectedTime").value = time;
+}
+
 </script>
 <script>
 async function login() {
