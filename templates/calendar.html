@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Календар записів</title>
+
+<style>
+body{font-family:Arial;padding:40px;background:#0f172a;color:white}
+a{color:#38bdf8}
+
+.calendar{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:10px;
+    margin-top:30px;
+}
+
+.day{
+    background:#1e293b;
+    padding:15px;
+    border-radius:10px;
+    min-height:90px;
+    cursor:pointer;
+}
+
+.day:hover{background:#334155}
+
+.day-number{font-size:18px;font-weight:bold}
+.day-count{color:#38bdf8;margin-top:5px}
+</style>
+</head>
+
+<body>
+
+<a href="/admin">⬅️ Назад в адмінку</a>
+<h1>📅 Календар записів</h1>
+
+<div id="calendar" class="calendar"></div>
+
+<script>
+loadCalendar();
+
+async function loadCalendar(){
+ const res=await fetch("/admin/bookings",{credentials:"include"});
+ const bookings=await res.json();
+
+ const now=new Date();
+ const year=now.getFullYear();
+ const month=now.getMonth();
+
+ const daysInMonth=new Date(year,month+1,0).getDate();
+
+ const calendar=document.getElementById("calendar");
+ calendar.innerHTML="";
+
+ for(let day=1;day<=daysInMonth;day++){
+   const d = new Date(year, month, day);
+const dateStr = d.getFullYear() + "-" +
+  String(d.getMonth()+1).padStart(2,'0') + "-" +
+  String(d.getDate()).padStart(2,'0');
+
+   const count = bookings.filter(b=>{
+    const bd = new Date(b.datetime);
+    const bookingDate =
+        bd.getFullYear() + "-" +
+        String(bd.getMonth()+1).padStart(2,'0') + "-" +
+        String(bd.getDate()).padStart(2,'0');
+
+    return bookingDate === dateStr;
+}).length;
+
+   calendar.innerHTML+=`
+     <div class="day" onclick="openDay('${dateStr}')">
+       <div class="day-number">${day}</div>
+       <div class="day-count">${count} записів</div>
+     </div>
+   `;
+ }
+}
+
+function openDay(date){
+ window.location.href="/admin?date="+date;
+}
+</script>
+
+</body>
+</html>
