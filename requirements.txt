@@ -5,3 +5,4 @@ sqlalchemy
 requests
 apscheduler
 python-multipart
+itsdangerous
