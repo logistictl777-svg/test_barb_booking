@@ -30,22 +30,19 @@
 <h2>Новий запис</h2>
 
 <select id="service">
-  <option value="">Оберіть послугу</option>
-  <option value="Стрижка">Стрижка — 400₴</option>
-  <option value="Борода">Борода — 300₴</option>
-  <option value="Стрижка + Борода">Стрижка + Борода — 600₴</option>
-  <option value="Дитяча стрижка">Дитяча стрижка — 350₴</option>
+    <option>Стрижка</option>
+    <option>Борода</option>
+    <option>Стрижка + Борода</option>
 </select>
 
 <input id="name" placeholder="Ваше ім'я">
+<input id="phone" placeholder="Телефон">
+
 <input id="date" type="date">
 
 <h3>⏰ Виберіть час</h3>
 <div id="timeSlots"></div>
-
 <input type="hidden" id="selectedTime">
-<input id="phone" placeholder="Телефон">
-<select id="datetime"></select>
 
 <button onclick="createBooking()">Записатись</button>
 
@@ -254,7 +251,13 @@ checkAdmin();   // 🔥 тепер запускаємо перевірку
 // ===============================
 
 // коли обрали дату
-document.getElementById("date").addEventListener("change", loadTimes);
+// запускаємо тільки після повного завантаження сторінки
+window.addEventListener("DOMContentLoaded", () => {
+    const dateInput = document.getElementById("date");
+    if(dateInput){
+        dateInput.addEventListener("change", loadTimes);
+    }
+});
 
 async function loadTimes(){
     const date = document.getElementById("date").value;
@@ -267,14 +270,14 @@ async function loadTimes(){
     container.innerHTML = "";
 
     times.forEach(t=>{
-        container.innerHTML += 
-        `<div class="time-slot" onclick="selectTime('${t}', this)">
-            ${t}
-        </div>`;
+        const div = document.createElement("div");
+        div.className = "time-slot";
+        div.innerText = t;
+        div.onclick = () => selectTime(t, div);
+        container.appendChild(div);
     });
 }
 
-// вибір часу
 function selectTime(time, el){
     document.querySelectorAll(".time-slot")
         .forEach(x=>x.classList.remove("selected"));

@@ -78,3 +78,34 @@ button:hover {
     margin-top: 10px;
     font-weight: bold;
 }
+
+/* =========================
+   TIME SLOTS (кнопки часу)
+========================= */
+
+#timeSlots{
+    margin-top:10px;
+    margin-bottom:20px;
+}
+
+.time-slot{
+    display:inline-block;
+    background:#1e293b;
+    color:white;
+    padding:10px 16px;
+    margin:6px;
+    border-radius:10px;
+    cursor:pointer;
+    transition:0.2s;
+    border:1px solid #334155;
+}
+
+.time-slot:hover{
+    background:#38bdf8;
+    transform:scale(1.05);
+}
+
+.time-slot.selected{
+    background:#22c55e;
+    border:1px solid #22c55e;
+}
