@@ -35,8 +35,8 @@ ADMIN_PASSWORD = "1234"
 # 🤖 TELEGRAM
 # =====================================================
 
-TELEGRAM_TOKEN = "ТУТ_ТВОЙ_ТОКЕН"
-TELEGRAM_CHAT_ID = "ТУТ_ТВОЙ_CHAT_ID"
+TELEGRAM_TOKEN = "8003975040:AAGoh-EIOjs9-0weN68ISUHZvDvjnI_mql8"
+TELEGRAM_CHAT_ID = "6352149388"
 
 def send_telegram(text: str):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -116,19 +116,23 @@ def create_booking(booking: Booking):
 
     db.add(new)
     db.commit()
-    db.refresh(new)
+    db.refresh(new)   # ⭐ ДУЖЕ ВАЖЛИВО
+
+    # ⭐ TELEGRAM В TRY щоб не ламав API
+    try:
+        send_telegram(
+            f"🆕 НОВИЙ ЗАПИС!\n\n"
+            f"👤 {new.client_name}\n"
+            f"📞 {new.phone}\n"
+            f"✂️ {new.service}\n"
+            f"🕒 {new.datetime}\n"
+            f"Статус: PENDING"
+        )
+    except Exception as e:
+        print("Telegram error:", e)
+
     db.close()
-
-    send_telegram(
-        f"🆕 НОВИЙ ЗАПИС!\n\n"
-        f"👤 {new.client_name}\n"
-        f"📞 {new.phone}\n"
-        f"✂️ {new.service}\n"
-        f"🕒 {new.datetime}\n"
-        f"Статус: PENDING"
-    )
-
-    return {"status": "ok"}
+    return {"ok": True}
 
 # =====================================================
 # 📅 AVAILABLE TIMES
