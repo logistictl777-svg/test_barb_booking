@@ -17,100 +17,52 @@
 <div class="booking-card">
 
 <h2>Усі записи</h2>
-<div id="bookings"></div>
+
 <button class="next-btn" onclick="logout()" style="margin-bottom:20px">
 Вийти
 </button>
+
 <div id="bookings"></div>
 
 </div>
 </section>
 
 <script>
-async function loadBookings(){
-    const res = await fetch("/admin/bookings");
-    const data = await res.json();
-
-    const box = document.getElementById("bookings");
-    box.innerHTML = "";
-
-    data.forEach(b => {
-        const div = document.createElement("div");
-        div.className="card";
-        div.style.marginTop="20px";
-
-        let buttons = "";
-
-        if(b.status === "pending"){
-            buttons = `
-                <button onclick="confirmBooking(${b.id})" class="next-btn">✔ Підтвердити</button>
-                <button onclick="cancelBooking(${b.id})" class="next-btn" style="background:#ef4444">✖ Скасувати</button>
-            `;
-        }
-
-        div.innerHTML = `
-            <b>${b.client_name}</b><br>
-            📞 ${b.phone}<br>
-            ✂️ ${b.service}<br>
-            🕒 ${b.datetime}<br>
-            <b>Статус: ${b.status}</b><br>
-            ${buttons}
-        `;
-
-        box.appendChild(div);
-    });
-}
-
-async function confirmBooking(id){
-    await fetch(`/booking/${id}/confirm`, {method:"PUT"});
-    loadBookings();
-}
-
-async function cancelBooking(id){
-    await fetch(`/booking/${id}/cancel`, {method:"PUT"});
-    loadBookings();
-}
-
-loadBookings();
-</script>
-<script>
 async function logout(){
   await fetch("/logout",{credentials:"include"});
   window.location="/";
 }
-</script>
-<script>
+
 async function loadBookings(){
   const res = await fetch("/admin/bookings",{
     credentials:"include"
   });
 
   const bookings = await res.json();
-
   const container = document.getElementById("bookings");
   container.innerHTML="";
 
   bookings.forEach(b=>{
     const div=document.createElement("div");
-    div.className="booking-item";
+    div.className="card";
+    div.style.marginTop="20px";
 
     let actions="";
 
     if(b.status==="pending"){
       actions=`
-        <button onclick="confirmBooking(${b.id})">✅</button>
-        <button onclick="cancelBooking(${b.id})">❌</button>
+        <button class="next-btn" onclick="confirmBooking(${b.id})">✔ Підтвердити</button>
+        <button class="next-btn" style="background:#ef4444" onclick="cancelBooking(${b.id})">✖ Скасувати</button>
       `;
     }
 
     div.innerHTML=`
       <b>${b.client_name}</b><br>
-      ${b.service}<br>
-      ${b.phone}<br>
-      ${b.datetime}<br>
-      <b>Status: ${b.status}</b><br>
+      📞 ${b.phone}<br>
+      ✂️ ${b.service}<br>
+      🕒 ${b.datetime}<br>
+      <b>Статус: ${b.status}</b><br><br>
       ${actions}
-      <hr>
     `;
 
     container.appendChild(div);
@@ -135,5 +87,6 @@ async function cancelBooking(id){
 
 loadBookings();
 </script>
+
 </body>
 </html>
