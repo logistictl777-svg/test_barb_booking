@@ -1,392 +1,217 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Barber Booking</title>
-    <link rel="stylesheet" href="/templates/style.css">
+<title>Barber Booking</title>
+<link rel="stylesheet" href="/templates/style.css">
 
-    <style>
-        body { font-family: Arial; max-width: 600px; margin: auto; }
-        input, button, select { width:100%; padding:10px; margin:5px 0; }
-        .card { border:1px solid #ccc; padding:10px; margin:10px 0; }
-    </style>
+<style>
+body{font-family:Arial;max-width:600px;margin:auto}
+input,button,select{width:100%;padding:10px;margin:5px 0}
+.card{border:1px solid #ccc;padding:10px;margin:10px 0}
+.time-slot{display:inline-block;padding:10px 15px;margin:5px;border-radius:10px;background:#1e293b;color:white;cursor:pointer}
+.time-slot.selected{background:#22c55e}
+</style>
 </head>
 
 <body>
 
 <h1>💈 Онлайн запис до барбера</h1>
 
-<!-- 🔐 LOGIN -->
-<div id="loginBox">
-    <h3>🔐 Вхід адміністратора</h3>
-    <input type="password" id="adminPassword" placeholder="Пароль">
-    <button onclick="login()">Увійти</button>
-    <button onclick="logout()">Вийти</button>
-</div>
+<!-- LOGIN -->
+<h3>🔐 Вхід адміністратора</h3>
+<input type="password" id="adminPassword" placeholder="Пароль">
+<button onclick="login()">Увійти</button>
+<button onclick="logout()">Вийти</button>
 
 <a href="/admin">🔐 Перейти в адмінку</a>
 <hr>
 
-
 <h2>Новий запис</h2>
 
 <select id="service">
-    <option>Стрижка</option>
-    <option>Борода</option>
-    <option>Стрижка + Борода</option>
+<option>Стрижка</option>
+<option>Борода</option>
+<option>Стрижка + Борода</option>
 </select>
 
 <input id="name" placeholder="Ваше ім'я">
 <input id="phone" placeholder="Телефон">
 
 <input id="date" type="date">
-
 <h3>⏰ Виберіть час</h3>
 <div id="timeSlots"></div>
 <input type="hidden" id="selectedTime">
 
 <button onclick="createBooking()">Записатись</button>
 
-<div id="messageBox" style="display:none" class="success-msg"></div>
+<div id="messageBox" style="display:none"></div>
 
 <h2>Список записів</h2>
 <div id="list"></div>
 
 <script>
-//////////////////////////////////////////////////////////
-// ГЛОБАЛЬНІ ЗМІННІ
-//////////////////////////////////////////////////////////
-let messageTimer = null;
-let editingId = null;
-let isAdmin = false;   // 👈 НОВЕ
+let messageTimer=null;
+let editingId=null;
+let isAdmin=false;
 
-async function checkAdmin() {
-    const res = await fetch("/check-admin");
-    const data = await res.json();
+////////////////////////////////////////////////
+// обмеження календаря (30 днів вперед)
+////////////////////////////////////////////////
+const today=new Date();
+const maxDate=new Date();
+maxDate.setDate(today.getDate()+30);
 
-    isAdmin = data.admin;   // ⭐ ЗБЕРІГАЄМО СТАТУС
-    loadBookings();         // ⭐ ПЕРЕМАЛЬОВУЄМО СПИСОК
-}
-//////////////////////////////////////////////////////////
-// ПОВІДОМЛЕННЯ
-//////////////////////////////////////////////////////////
-function showMessage(text) {
-    const box = document.getElementById("messageBox");
-    box.innerText = text;
-    box.style.display = "block";
+document.getElementById("date").min=today.toISOString().split("T")[0];
+document.getElementById("date").max=maxDate.toISOString().split("T")[0];
 
-    if (messageTimer) clearTimeout(messageTimer);
-    messageTimer = setTimeout(() => box.style.display = "none", 2000);
-}
-
-//////////////////////////////////////////////////////////
-// ГЕНЕРАЦІЯ ВІЛЬНОГО ЧАСУ
-//////////////////////////////////////////////////////////
-async function generateTimeSlots() {
-    const select = document.getElementById("datetime");
-    select.innerHTML = "";
-
-    const res = await fetch("/bookings");
-    const bookings = await res.json();
-    const busyTimes = bookings.map(b => b.datetime.slice(0,16));
-
-    const selectedDate = document.getElementById("date").value;
-    if (!selectedDate) return;
-
-    for (let hour = 10; hour < 20; hour++) {
-        for (let min of ["00","30"]) {
-            const isoLocal = `${selectedDate}T${String(hour).padStart(2,"0")}:${min}`;
-            if (busyTimes.includes(isoLocal)) continue;
-
-            const option = document.createElement("option");
-            option.value = isoLocal;
-            option.text = `${hour}:${min}`;
-            select.appendChild(option);
-        }
-    }
+////////////////////////////////////////////////
+// повідомлення
+////////////////////////////////////////////////
+function showMessage(text){
+ const box=document.getElementById("messageBox");
+ box.innerText=text;
+ box.style.display="block";
+ clearTimeout(messageTimer);
+ messageTimer=setTimeout(()=>box.style.display="none",2000);
 }
 
-//////////////////////////////////////////////////////////
-// ЗАВАНТАЖЕННЯ ЗАПИСІВ
-//////////////////////////////////////////////////////////
-async function loadBookings() {
-    const res = await fetch("/bookings");
-    const data = await res.json();
-
-    const list = document.getElementById("list");
-    list.innerHTML = "";
-
-    data.forEach(b => {
-        const card = document.createElement("div");
-        card.className = "card";
-
-    let buttons = "";
-
-let adminButtons = "";
-
-if (isAdmin) {
-    adminButtons = `
-        <button onclick="editBooking(${b.id}, '${b.client_name}', '${b.phone}', '${b.service}', '${b.datetime}')">✏️ Редагувати</button>
-        <button onclick="deleteBooking(${b.id})">❌ Видалити</button>
-    `;
+////////////////////////////////////////////////
+// ADMIN CHECK
+////////////////////////////////////////////////
+async function checkAdmin(){
+ const res=await fetch("/check-admin");
+ const data=await res.json();
+ isAdmin=data.admin;
+ loadBookings();
 }
 
-card.innerHTML = `
-    <b>${b.client_name}</b><br>
-    ${b.service}<br>
-    ${b.phone}<br>
-    ${b.datetime}<br><br>
-    ${adminButtons}
-`;
+////////////////////////////////////////////////
+// робочі години барбера
+////////////////////////////////////////////////
+async function loadTimes(){
+ const date=document.getElementById("date").value;
+ if(!date) return;
 
-        list.appendChild(card);
-    });
+ const day=new Date(date).getDay();
+ const container=document.getElementById("timeSlots");
+ container.innerHTML="";
+
+ if(day===0){
+   container.innerHTML="<p>У неділю барбер не працює 😴</p>";
+   return;
+ }
+
+ const res=await fetch(`/available-times?date=${date}`);
+ const times=await res.json();
+
+ times.forEach(t=>{
+   const div=document.createElement("div");
+   div.className="time-slot";
+   div.innerText=t;
+   div.onclick=()=>selectTime(t,div);
+   container.appendChild(div);
+ });
 }
 
-//////////////////////////////////////////////////////////
-// РЕДАГУВАННЯ
-//////////////////////////////////////////////////////////
-function editBooking(id, name, phone, service, datetime) {
-    editingId = id;
-
-    document.getElementById("name").value = name;
-    document.getElementById("phone").value = phone;
-    document.getElementById("service").value = service;
-    document.getElementById("datetime").value = datetime.slice(0,16);
-
-    showMessage("Режим редагування ✏️");
+function selectTime(time,el){
+ document.querySelectorAll(".time-slot").forEach(x=>x.classList.remove("selected"));
+ el.classList.add("selected");
+ document.getElementById("selectedTime").value=time;
 }
 
-//////////////////////////////////////////////////////////
-// СТВОРЕННЯ / ОНОВЛЕННЯ
-//////////////////////////////////////////////////////////
-async function createBooking() {
-    const name = document.getElementById("name").value;
-    const phone = document.getElementById("phone").value;
-    const service = document.getElementById("service").value;
-    
-    const date = document.getElementById("date").value;
-const time = document.getElementById("selectedTime").value;
+document.getElementById("date").addEventListener("change",loadTimes);
 
-if(!time){
-    showMessage("Оберіть час ⏰");
-    return;
+////////////////////////////////////////////////
+// створення запису
+////////////////////////////////////////////////
+async function createBooking(){
+ const name=document.getElementById("name").value;
+ const phone=document.getElementById("phone").value;
+ const service=document.getElementById("service").value;
+ const date=document.getElementById("date").value;
+ const time=document.getElementById("selectedTime").value;
+
+ if(!time){showMessage("Оберіть час ⏰");return;}
+
+ const datetime=date+"T"+time;
+
+ const res=await fetch("/book",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({client_name:name,phone:phone,service:service,datetime:datetime})
+ });
+
+ const data=await res.json();
+ if(!res.ok){showMessage(data.detail);return;}
+
+ showMessage("Запис створено ✅");
+ loadTimes();
+ loadBookings();
 }
 
-const datetime = date + "T" + time;
+////////////////////////////////////////////////
+// список записів
+////////////////////////////////////////////////
+async function loadBookings(){
+ const res=await fetch("/bookings");
+ const data=await res.json();
 
-    let url = "/book";
-    let method = "POST";
+ const list=document.getElementById("list");
+ list.innerHTML="";
 
-    if (editingId !== null) {
-        url = `/booking/${editingId}`;
-        method = "PUT";
-    }
+ data.forEach(b=>{
+   const card=document.createElement("div");
+   card.className="card";
 
-    const res = await fetch(url, {
-        method: method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_name:name, phone:phone, service:service, datetime:datetime })
-    });
+   let adminButtons="";
+   if(isAdmin){
+     adminButtons=`<button onclick="deleteBooking(${b.id})">❌ Видалити</button>`;
+   }
 
-    const data = await res.json();
-
-    if (!res.ok) {
-        showMessage(data.detail);
-        return;
-    }
-
-    showMessage(editingId ? "Запис оновлено ✏️" : "Запис створено ✅");
-
-    editingId = null;
-    document.getElementById("name").value = "";
-    document.getElementById("phone").value = "";
-
-    generateTimeSlots();
-    checkAdmin();   // 👈 замість loadBookings()
+   card.innerHTML=`
+     <b>${b.client_name}</b><br>
+     ${b.service}<br>
+     ${b.phone}<br>
+     ${b.datetime}<br>
+     ${adminButtons}
+   `;
+   list.appendChild(card);
+ });
 }
 
-//////////////////////////////////////////////////////////
-// ВИДАЛЕННЯ
-//////////////////////////////////////////////////////////
-async function deleteBooking(id) {
-    const res = await fetch(`/booking/${id}`, { method: "DELETE" });
-    if (res.ok) {
-        showMessage("Запис видалено 🗑️");
-        loadBookings();
-        generateTimeSlots();
-    }
+async function deleteBooking(id){
+ await fetch(`/booking/${id}`,{method:"DELETE"});
+ showMessage("Запис видалено");
+ loadBookings();
+ loadTimes();
 }
 
-//////////////////////////////////////////////////////////
-// LOGIN ADMIN
-//////////////////////////////////////////////////////////
-async function login() {
-    const password = document.getElementById("adminPassword").value;
-    const formData = new FormData();
-    formData.append("password", password);
+////////////////////////////////////////////////
+// login logout
+////////////////////////////////////////////////
+async function login(){
+ const password=document.getElementById("adminPassword").value;
+ const formData=new FormData();
+ formData.append("password",password);
 
-    const res = await fetch("/login", { method:"POST", body:formData });
-    const data = await res.json();
+ const res=await fetch("/login",{method:"POST",body:formData,credentials:"include"});
+ const data=await res.json();
 
-    showMessage(data.status === "ok" ? "Вхід виконано 🔐" : "Невірний пароль ❌");
+ if(data.status==="ok"){showMessage("Адмін увійшов 🔐");checkAdmin();}
+ else showMessage("Невірний пароль ❌");
+}
 
+async function logout(){
+ await fetch("/logout",{credentials:"include"});
+ showMessage("Ви вийшли");
  checkAdmin();
 }
- async function logout() {
-    await fetch("/logout");
-    showMessage("Вихід виконано 👋");
-    checkAdmin();   // 👈 ВАЖЛИВО
-}
-//////////////////////////////////////////////////////////
-// СТАРТ САЙТУ
-//////////////////////////////////////////////////////////
-document.getElementById("date").value = new Date().toISOString().split("T")[0];
-document.getElementById("date").addEventListener("change", generateTimeSlots);
 
-generateTimeSlots();
-checkAdmin();   // 🔥 тепер запускаємо перевірку
-
-// ===============================
-// ⏰ Завантаження доступних годин
-// ===============================
-
-// коли обрали дату
-// запускаємо тільки після повного завантаження сторінки
-window.addEventListener("DOMContentLoaded", () => {
-    const dateInput = document.getElementById("date");
-    if(dateInput){
-        dateInput.addEventListener("change", loadTimes);
-    }
-});
-
-async function loadTimes(){
-    const date = document.getElementById("date").value;
-    if(!date) return;
-
-    const res = await fetch(`/available-times?date=${date}`);
-    const times = await res.json();
-
-    const container = document.getElementById("timeSlots");
-    container.innerHTML = "";
-
-    times.forEach(t=>{
-        const div = document.createElement("div");
-        div.className = "time-slot";
-        div.innerText = t;
-        div.onclick = () => selectTime(t, div);
-        container.appendChild(div);
-    });
-}
-
-function selectTime(time, el){
-    document.querySelectorAll(".time-slot")
-        .forEach(x=>x.classList.remove("selected"));
-
-    el.classList.add("selected");
-    document.getElementById("selectedTime").value = time;
-}
-
-</script>
-<script>
-async function login() {
-    const password = document.getElementById("adminPassword").value;
-
-    const formData = new FormData();
-    formData.append("password", password);
-
-    const res = await fetch("/login", {
-        method: "POST",
-        body: formData
-    });
-
-    const data = await res.json();
-
-    if (data.status === "ok") {
-        alert("Адмін увійшов ✅");
-        location.reload();
-    } else {
-        alert("Невірний пароль ❌");
-    }
-}
-
-async function logout() {
-    await fetch("/logout");
-    alert("Ви вийшли");
-    location.reload();
-}
-</script>
-<script>
-async function login() {
-    const password = document.getElementById("adminPassword").value;
-
-    const formData = new FormData();
-    formData.append("password", password);
-
-    const res = await fetch("/login", {
-        method: "POST",
-        body: formData,
-        credentials: "include"   // ⭐ СУПЕР ВАЖЛИВО
-    });
-
-    const data = await res.json();
-
-    if (data.status === "ok") {
-        alert("Успішний вхід в адмінку ✅");
-        window.location.href = "/admin";  // одразу переходимо в адмінку
-    } else {
-        alert("Невірний пароль ❌");
-    }
-}
-
-async function logout() {
-    await fetch("/logout", {
-        credentials: "include"   // ⭐ теж обовʼязково
-    });
-
-    alert("Ви вийшли з адмінки");
-}
+////////////////////////////////////////////////
+// старт сайту
+////////////////////////////////////////////////
+checkAdmin();
 </script>
 
-<div id="timeSlots"></div>
-<input type="hidden" id="selectedTime">
-
-<button onclick="createBooking()">Записатись</button>
-
-<!-- ⬇⬇⬇ СКРИПТ В САМОМУ НИЗУ СТОРІНКИ -->
-<script>
-window.addEventListener("DOMContentLoaded", () => {
-    const dateInput = document.getElementById("date");
-    if(dateInput){
-        dateInput.addEventListener("change", loadTimes);
-    }
-});
-
-async function loadTimes(){
-    const date = document.getElementById("date").value;
-    if(!date) return;
-
-    const res = await fetch(`/available-times?date=${date}`);
-    const times = await res.json();
-
-    const container = document.getElementById("timeSlots");
-    container.innerHTML = "";
-
-    times.forEach(t=>{
-        const div = document.createElement("div");
-        div.className = "time-slot";
-        div.innerText = t;
-        div.onclick = () => selectTime(t, div);
-        container.appendChild(div);
-    });
-}
-
-function selectTime(time, el){
-    document.querySelectorAll(".time-slot")
-        .forEach(x=>x.classList.remove("selected"));
-
-    el.classList.add("selected");
-    document.getElementById("selectedTime").value = time;
-}
-</script>
 </body>
 </html>
