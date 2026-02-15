@@ -3,72 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <title>Barber Booking</title>
-<link rel="stylesheet" href="/templates/style.css">
+<link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
+<!-- HEADER -->
+<header class="header">
+    <div class="logo">💈 BarberShop</div>
+    <a href="/admin" class="admin-link">Admin login</a>
+</header>
+
 <!-- HERO -->
-<div class="hero">
-    <h1>💈 Barber Booking</h1>
-    <p>Онлайн запис за 30 секунд</p>
+<section class="hero">
+    <h1>Запишись до барбера онлайн 💈</h1>
+    <p>Обери послугу та час за 30 секунд</p>
+    <button class="cta-btn" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">
+        Записатися зараз
+    </button>
+</section>
+
+<!-- BOOKING -->
+<section id="booking" class="booking-container">
+<div class="booking-card">
+
+<div class="progress">Service → Time → Details</div>
+
+<h2>Оберіть послугу</h2>
+
+<div class="services-grid">
+  <div class="service-card" onclick="selectService('Стрижка')">Стрижка<span>30 хв · 25€</span></div>
+  <div class="service-card" onclick="selectService('Борода')">Борода<span>20 хв · 15€</span></div>
+  <div class="service-card popular" onclick="selectService('Стрижка + Борода')">Combo 🔥<span>45 хв · 35€</span></div>
 </div>
 
-<!-- LOGIN -->
-<div id="loginBox">
-    <h3>🔐 Вхід адміністратора</h3>
-    <input type="password" id="adminPassword" placeholder="Пароль">
-    <button onclick="login()">Увійти</button>
-    <button onclick="logout()">Вийти</button>
-</div>
+<input type="hidden" id="service">
 
-<a href="/admin">🔐 Перейти в адмінку</a>
-<hr>
-
-<div class="container">
-
-<div class="card">
-<h2>Новий запис</h2>
-
-<select id="service">
-    <option>Стрижка</option>
-    <option>Борода</option>
-    <option>Стрижка + Борода</option>
-</select>
-
+<h2 style="margin-top:40px">Ваші контакти</h2>
 <input id="name" placeholder="Ваше ім'я">
 <input id="phone" placeholder="Телефон">
+
+<h2 style="margin-top:30px">Дата</h2>
 <input id="date" type="date">
 
-<h3>⏰ Виберіть час</h3>
+<h2>⏰ Виберіть час</h2>
 <div id="timeSlots"></div>
 <input type="hidden" id="selectedTime">
 
-<button class="main-btn" onclick="createBooking()">Записатись</button>
+<button class="next-btn" onclick="createBooking()">Підтвердити запис</button>
+
 <div id="messageBox" style="display:none" class="success-msg"></div>
-</div>
-
-<h2>Список записів</h2>
-<div id="list"></div>
 
 </div>
+</section>
 
 <script>
 let messageTimer=null;
 let isAdmin=false;
 
-////////////////////////////////////////////////
-// обмеження календаря
-////////////////////////////////////////////////
+function selectService(service){
+ document.getElementById("service").value=service;
+ document.querySelectorAll(".service-card").forEach(c=>c.style.border="1px solid #1e293b");
+ event.currentTarget.style.border="2px solid #22c55e";
+}
+
 const today=new Date();
 const maxDate=new Date();
 maxDate.setDate(today.getDate()+30);
 document.getElementById("date").min=today.toISOString().split("T")[0];
 document.getElementById("date").max=maxDate.toISOString().split("T")[0];
 
-////////////////////////////////////////////////
-// повідомлення
-////////////////////////////////////////////////
 function showMessage(text){
  const box=document.getElementById("messageBox");
  box.innerText=text;
@@ -77,19 +81,6 @@ function showMessage(text){
  messageTimer=setTimeout(()=>box.style.display="none",2000);
 }
 
-////////////////////////////////////////////////
-// перевірка адміна
-////////////////////////////////////////////////
-async function checkAdmin(){
- const res=await fetch("/check-admin");
- const data=await res.json();
- isAdmin=data.admin;
- loadBookings();
-}
-
-////////////////////////////////////////////////
-// доступні години
-////////////////////////////////////////////////
 async function loadTimes(){
  const date=document.getElementById("date").value;
  if(!date) return;
@@ -123,9 +114,6 @@ function selectTime(time,el){
 
 document.getElementById("date").addEventListener("change",loadTimes);
 
-////////////////////////////////////////////////
-// створення запису
-////////////////////////////////////////////////
 async function createBooking(){
  const name=document.getElementById("name").value;
  const phone=document.getElementById("phone").value;
@@ -133,6 +121,7 @@ async function createBooking(){
  const date=document.getElementById("date").value;
  const time=document.getElementById("selectedTime").value;
 
+ if(!service){showMessage("Оберіть послугу 💈");return;}
  if(!time){showMessage("Оберіть час ⏰");return;}
 
  const datetime=date+"T"+time;
@@ -146,73 +135,9 @@ async function createBooking(){
  const data=await res.json();
  if(!res.ok){showMessage(data.detail);return;}
 
- showMessage("Запис створено ✅");
- loadTimes();
- loadBookings();
-}
-
-////////////////////////////////////////////////
-// список записів
-////////////////////////////////////////////////
-async function loadBookings(){
- const res=await fetch("/bookings");
- const data=await res.json();
-
- const list=document.getElementById("list");
- list.innerHTML="";
-
- data.forEach(b=>{
-   const card=document.createElement("div");
-   card.className="card";
-
-   let adminButtons="";
-   if(isAdmin){
-     adminButtons=`<button onclick="deleteBooking(${b.id})">❌ Видалити</button>`;
-   }
-
-   card.innerHTML=`
-     <b>${b.client_name}</b><br>
-     ${b.service}<br>
-     ${b.phone}<br>
-     ${b.datetime}<br>
-     ${adminButtons}
-   `;
-   list.appendChild(card);
- });
-}
-
-async function deleteBooking(id){
- await fetch(`/booking/${id}`,{method:"DELETE"});
- showMessage("Запис видалено");
- loadBookings();
+ showMessage("Ви записані 🎉");
  loadTimes();
 }
-
-////////////////////////////////////////////////
-// LOGIN / LOGOUT
-////////////////////////////////////////////////
-async function login(){
- const password=document.getElementById("adminPassword").value;
- const formData=new FormData();
- formData.append("password",password);
-
- const res=await fetch("/login",{method:"POST",body:formData,credentials:"include"});
- const data=await res.json();
-
- if(data.status==="ok"){showMessage("Адмін увійшов 🔐");checkAdmin();}
- else showMessage("Невірний пароль ❌");
-}
-
-async function logout(){
- await fetch("/logout",{credentials:"include"});
- showMessage("Ви вийшли");
- checkAdmin();
-}
-
-////////////////////////////////////////////////
-// старт сайту
-////////////////////////////////////////////////
-checkAdmin();
 </script>
 
 </body>
