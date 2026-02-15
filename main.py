@@ -296,32 +296,35 @@ def start_scheduler():
 # 📅 AVAILABLE TIME SLOTS
 # =====================================================
 
+# =====================================================
+# 📅 AVAILABLE TIME SLOTS (FINAL VERSION)
+# =====================================================
 @app.get("/available-times")
 def available_times(date: str):
     db = SessionLocal()
 
-    # робочі години барбера
     WORK_START = 10
     WORK_END = 19
 
-    selected_date = datetime.fromisoformat(date)
+    selected_date = datetime.strptime(date, "%Y-%m-%d")
 
     start_day = selected_date.replace(hour=0, minute=0, second=0)
     end_day = selected_date.replace(hour=23, minute=59, second=59)
 
-    # записи на цей день
+    # беремо ВСІ записи на день (крім скасованих)
     bookings = db.query(Appointment).filter(
         Appointment.datetime >= start_day,
         Appointment.datetime <= end_day,
         Appointment.status != "cancelled"
     ).all()
 
-    booked_hours = [b.datetime.hour for b in bookings]
+    busy_hours = [b.datetime.strftime("%H:00") for b in bookings]
 
     free_slots = []
     for hour in range(WORK_START, WORK_END):
-        if hour not in booked_hours:
-            free_slots.append(f"{hour}:00")
+        slot = f"{hour:02d}:00"
+        if slot not in busy_hours:
+            free_slots.append(slot)
 
     db.close()
     return free_slots
