@@ -2,8 +2,7 @@ fastapi
 uvicorn
 jinja2
 sqlalchemy
-requests
-apscheduler
+psycopg2-binary
 python-multipart
 itsdangerous
 requests
