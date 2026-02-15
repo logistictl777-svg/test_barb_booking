@@ -11,10 +11,6 @@ import requests
 from database import SessionLocal, engine
 from models import Appointment
 
-# =====================================================
-# 🚀 APP INIT
-# =====================================================
-
 app = FastAPI()
 
 app.add_middleware(
@@ -28,23 +24,24 @@ templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 Appointment.metadata.create_all(bind=engine)
-
 ADMIN_PASSWORD = "1234"
 
-# =====================================================
-# 🤖 TELEGRAM
-# =====================================================
+# ================= TELEGRAM =================
 
 TELEGRAM_TOKEN = "8003975040:AAGoh-EIOjs9-0weN68ISUHZvDvjnI_mql8"
 TELEGRAM_CHAT_ID = "6352149388"
 
 def send_telegram(text: str):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": text})
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": text},
+            timeout=5
+        )
+    except Exception as e:
+        print("Telegram error:", e)
 
-# =====================================================
-# 📦 MODEL
-# =====================================================
+# ================= MODEL =================
 
 class Booking(BaseModel):
     client_name: str
@@ -52,9 +49,7 @@ class Booking(BaseModel):
     service: str
     datetime: datetime
 
-# =====================================================
-# 🌐 PAGES
-# =====================================================
+# ================= PAGES =================
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
@@ -70,19 +65,14 @@ def admin_page(request: Request):
         return RedirectResponse("/login")
     return templates.TemplateResponse("admin.html", {"request": request})
 
-# =====================================================
-# 🔐 AUTH
-# =====================================================
+# ================= AUTH =================
 
 @app.post("/login")
 async def login(request: Request):
     form = await request.form()
-    password = form.get("password")
-
-    if password == ADMIN_PASSWORD:
+    if form.get("password") == ADMIN_PASSWORD:
         request.session["admin"] = True
         return {"ok": True}
-
     return {"ok": False}
 
 @app.get("/logout")
@@ -90,9 +80,7 @@ def logout(request: Request):
     request.session.clear()
     return {"ok": True}
 
-# =====================================================
-# ✂️ CREATE BOOKING
-# =====================================================
+# ================= CREATE BOOKING =================
 
 @app.post("/book")
 def create_booking(booking: Booking):
@@ -116,59 +104,19 @@ def create_booking(booking: Booking):
 
     db.add(new)
     db.commit()
-    db.refresh(new)   # ⭐ ДУЖЕ ВАЖЛИВО
+    db.refresh(new)
 
-    # ⭐ TELEGRAM В TRY щоб не ламав API
-    try:
-        send_telegram(
-            f"🆕 НОВИЙ ЗАПИС!\n\n"
-            f"👤 {new.client_name}\n"
-            f"📞 {new.phone}\n"
-            f"✂️ {new.service}\n"
-            f"🕒 {new.datetime}\n"
-            f"Статус: PENDING"
-        )
-    except Exception as e:
-        print("Telegram error:", e)
-
+    # Зберігаємо дані ДО db.close()
+    name, phone, service, dt = new.client_name, new.phone, new.service, new.datetime
     db.close()
+
+    send_telegram(
+        f"🆕 НОВИЙ ЗАПИС!\n\n👤 {name}\n📞 {phone}\n✂️ {service}\n🕒 {dt}"
+    )
+
     return {"ok": True}
 
-# =====================================================
-# 📅 AVAILABLE TIMES
-# =====================================================
-
-@app.get("/available-times")
-def available_times(date: str):
-    db = SessionLocal()
-
-    WORK_START = 10
-    WORK_END = 19
-
-    selected_date = datetime.strptime(date, "%Y-%m-%d")
-    start = selected_date.replace(hour=0, minute=0, second=0)
-    end = selected_date.replace(hour=23, minute=59, second=59)
-
-    bookings = db.query(Appointment).filter(
-        Appointment.datetime >= start,
-        Appointment.datetime <= end,
-        Appointment.status != "cancelled"
-    ).all()
-
-    busy = [b.datetime.strftime("%H:00") for b in bookings]
-
-    free = []
-    for hour in range(WORK_START, WORK_END):
-        slot = f"{hour:02d}:00"
-        if slot not in busy:
-            free.append(slot)
-
-    db.close()
-    return free
-
-# =====================================================
-# 👨‍💼 ADMIN BOOKINGS
-# =====================================================
+# ================= ADMIN BOOKINGS =================
 
 @app.get("/admin/bookings")
 def admin_bookings(request: Request):
@@ -187,19 +135,15 @@ def confirm_booking(id: int, request: Request):
 
     db = SessionLocal()
     booking = db.query(Appointment).filter(Appointment.id == id).first()
-
     booking.status = "confirmed"
     db.commit()
+
+    name, phone, service, dt = booking.client_name, booking.phone, booking.service, booking.datetime
     db.close()
 
     send_telegram(
-        f"✅ ЗАПИС ПІДТВЕРДЖЕНО\n\n"
-        f"👤 {booking.client_name}\n"
-        f"📞 {booking.phone}\n"
-        f"✂️ {booking.service}\n"
-        f"🕒 {booking.datetime}"
+        f"✅ ЗАПИС ПІДТВЕРДЖЕНО\n\n👤 {name}\n📞 {phone}\n✂️ {service}\n🕒 {dt}"
     )
-
     return {"ok": True}
 
 @app.put("/booking/{id}/cancel")
@@ -209,46 +153,31 @@ def cancel_booking(id: int, request: Request):
 
     db = SessionLocal()
     booking = db.query(Appointment).filter(Appointment.id == id).first()
-
     booking.status = "cancelled"
     db.commit()
+
+    name, phone, service, dt = booking.client_name, booking.phone, booking.service, booking.datetime
     db.close()
 
     send_telegram(
-        f"❌ ЗАПИС СКАСОВАНО\n\n"
-        f"👤 {booking.client_name}\n"
-        f"📞 {booking.phone}\n"
-        f"✂️ {booking.service}\n"
-        f"🕒 {booking.datetime}"
+        f"❌ ЗАПИС СКАСОВАНО\n\n👤 {name}\n📞 {phone}\n✂️ {service}\n🕒 {dt}"
     )
-
     return {"ok": True}
 
-# =====================================================
-# ⏰ REMINDERS
-# =====================================================
+# ================= REMINDERS =================
 
 def send_reminders():
     db = SessionLocal()
-
     tomorrow = datetime.now() + timedelta(days=1)
-    start = tomorrow.replace(hour=0, minute=0, second=0)
-    end = tomorrow.replace(hour=23, minute=59, second=59)
 
     bookings = db.query(Appointment).filter(
-        Appointment.datetime >= start,
-        Appointment.datetime <= end,
+        Appointment.datetime >= tomorrow.replace(hour=0, minute=0),
+        Appointment.datetime <= tomorrow.replace(hour=23, minute=59),
         Appointment.status == "confirmed"
     ).all()
 
     for b in bookings:
-        send_telegram(
-            f"⏰ НАГАДУВАННЯ\n\n"
-            f"Завтра запис:\n"
-            f"👤 {b.client_name}\n"
-            f"✂️ {b.service}\n"
-            f"🕒 {b.datetime}"
-        )
+        send_telegram(f"⏰ НАГАДУВАННЯ\n\nЗавтра запис:\n👤 {b.client_name}\n✂️ {b.service}\n🕒 {b.datetime}")
 
     db.close()
 
