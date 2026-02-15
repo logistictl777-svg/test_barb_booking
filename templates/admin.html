@@ -2,81 +2,48 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<title>Admin panel</title>
+<title>Admin Login</title>
 <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
 
 <body>
 
-<header class="header">
-    <div class="logo">🔐 Admin panel</div>
-    <a href="/" class="admin-link">На сайт</a>
-</header>
-
 <section class="booking-container">
 <div class="booking-card">
 
-<h2>Усі записи</h2>
-<button class="next-btn" onclick="logout()" style="margin-bottom:20px">
-Вийти
-</button>
-<div id="bookings"></div>
+<h2>Вхід адміністратора 🔐</h2>
+
+<input id="password" type="password" placeholder="Пароль">
+<button class="next-btn" id="loginBtn">Увійти</button>
+
+<div id="msg" class="success-msg" style="display:none"></div>
 
 </div>
 </section>
 
 <script>
-async function loadBookings(){
-    const res = await fetch("/admin/bookings");
-    const data = await res.json();
+document.getElementById("loginBtn").addEventListener("click", async () => {
 
-    const box = document.getElementById("bookings");
-    box.innerHTML = "";
+  const form = new FormData();
+  form.append("password", document.getElementById("password").value);
 
-    data.forEach(b => {
-        const div = document.createElement("div");
-        div.className="card";
-        div.style.marginTop="20px";
+  const res = await fetch("/login",{
+      method:"POST",
+      body:form,
+      credentials:"include"
+  });
 
-        let buttons = "";
+  const data = await res.json();
 
-        if(b.status === "pending"){
-            buttons = `
-                <button onclick="confirmBooking(${b.id})" class="next-btn">✔ Підтвердити</button>
-                <button onclick="cancelBooking(${b.id})" class="next-btn" style="background:#ef4444">✖ Скасувати</button>
-            `;
-        }
+  if(data.ok){
+      window.location.href="/admin";
+  }else{
+      const msg=document.getElementById("msg");
+      msg.innerText="Невірний пароль";
+      msg.style.display="block";
+  }
 
-        div.innerHTML = `
-            <b>${b.client_name}</b><br>
-            📞 ${b.phone}<br>
-            ✂️ ${b.service}<br>
-            🕒 ${b.datetime}<br>
-            <b>Статус: ${b.status}</b><br>
-            ${buttons}
-        `;
-
-        box.appendChild(div);
-    });
-}
-
-async function confirmBooking(id){
-    await fetch(`/booking/${id}/confirm`, {method:"PUT"});
-    loadBookings();
-}
-
-async function cancelBooking(id){
-    await fetch(`/booking/${id}/cancel`, {method:"PUT"});
-    loadBookings();
-}
-
-loadBookings();
-</script>
-<script>
-async function logout(){
-  await fetch("/logout",{credentials:"include"});
-  window.location="/";
-}
+});
 </script>
 
 </body>

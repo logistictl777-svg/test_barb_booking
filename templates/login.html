@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
 <meta charset="UTF-8">
 <title>Admin Login</title>
@@ -14,7 +14,7 @@
 <h2>Вхід адміністратора 🔐</h2>
 
 <input id="password" type="password" placeholder="Пароль">
-<button class="next-btn" onclick="login()">Увійти</button>
+<button class="next-btn" id="loginBtn">Увійти</button>
 
 <div id="msg" class="success-msg" style="display:none"></div>
 
@@ -22,25 +22,28 @@
 </section>
 
 <script>
-async function login(){
+document.getElementById("loginBtn").addEventListener("click", async () => {
+
   const form = new FormData();
   form.append("password", document.getElementById("password").value);
 
   const res = await fetch("/login",{
       method:"POST",
       body:form,
-      credentials:"include"   // ⭐ ВАЖЛИВО
+      credentials:"include"
   });
 
   const data = await res.json();
 
   if(data.ok){
-    window.location="/admin";
-  } else {
-    document.getElementById("msg").innerText="Невірний пароль";
-    document.getElementById("msg").style.display="block";
+      window.location.href="/admin";
+  }else{
+      const msg=document.getElementById("msg");
+      msg.innerText="Невірний пароль";
+      msg.style.display="block";
   }
-}
+
+});
 </script>
 
 </body>
