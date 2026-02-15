@@ -135,15 +135,22 @@ def confirm_booking(id: int, request: Request):
 
     db = SessionLocal()
     booking = db.query(Appointment).filter(Appointment.id == id).first()
+
+    # ⭐ ЗБЕРІГАЄМО ДАНІ ДО commit
+    name = booking.client_name
+    phone = booking.phone
+    service = booking.service
+    dt = booking.datetime
+
     booking.status = "confirmed"
     db.commit()
-
-    name, phone, service, dt = booking.client_name, booking.phone, booking.service, booking.datetime
     db.close()
 
     send_telegram(
-        f"✅ ЗАПИС ПІДТВЕРДЖЕНО\n\n👤 {name}\n📞 {phone}\n✂️ {service}\n🕒 {dt}"
+        f"✅ ЗАПИС ПІДТВЕРДЖЕНО\n\n"
+        f"👤 {name}\n📞 {phone}\n✂️ {service}\n🕒 {dt}"
     )
+
     return {"ok": True}
 
 @app.put("/booking/{id}/cancel")
@@ -153,15 +160,22 @@ def cancel_booking(id: int, request: Request):
 
     db = SessionLocal()
     booking = db.query(Appointment).filter(Appointment.id == id).first()
+
+    # ⭐ ЗБЕРІГАЄМО ДАНІ ДО commit
+    name = booking.client_name
+    phone = booking.phone
+    service = booking.service
+    dt = booking.datetime
+
     booking.status = "cancelled"
     db.commit()
-
-    name, phone, service, dt = booking.client_name, booking.phone, booking.service, booking.datetime
     db.close()
 
     send_telegram(
-        f"❌ ЗАПИС СКАСОВАНО\n\n👤 {name}\n📞 {phone}\n✂️ {service}\n🕒 {dt}"
+        f"❌ ЗАПИС СКАСОВАНО\n\n"
+        f"👤 {name}\n📞 {phone}\n✂️ {service}\n🕒 {dt}"
     )
+
     return {"ok": True}
 
 # ================= REMINDERS =================
