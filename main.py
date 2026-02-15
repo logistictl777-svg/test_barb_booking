@@ -13,23 +13,24 @@ from database import SessionLocal, engine
 from models import Appointment
 
 # =====================================================
-# 🚀 APP INIT (ГОЛОВНЕ ВИПРАВЛЕННЯ)
+# 🚀 APP INIT (ПРАВИЛЬНИЙ ПОРЯДОК)
 # =====================================================
 
 app = FastAPI()
 
-# ⭐ СЕСІЇ
-app.add_middleware(SessionMiddleware, secret_key="super-secret-key")
-
-# ⭐ TEMPLATES + STATIC (ДУЖЕ ВАЖЛИВО)
-templates = Jinja2Templates(directory="templates")
+# 🔥 1. STATIC ПОВИНЕН БУТИ ПЕРШИМ
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 🔥 2. TEMPLATES ПІСЛЯ STATIC
+templates = Jinja2Templates(directory="templates")
+
+# 🔥 3. СЕСІЇ ПІСЛЯ ВСЬОГО
+app.add_middleware(SessionMiddleware, secret_key="super-secret-key")
 
 # створюємо таблиці
 Appointment.metadata.create_all(bind=engine)
 
 ADMIN_PASSWORD = "1234"
-
 # =====================================================
 # 📲 TELEGRAM
 # =====================================================
