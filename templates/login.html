@@ -26,7 +26,12 @@ async function login(){
   const form = new FormData();
   form.append("password", document.getElementById("password").value);
 
-  const res = await fetch("/login",{method:"POST", body:form});
+  const res = await fetch("/login",{
+      method:"POST",
+      body:form,
+      credentials:"include"   // ⭐ ВАЖЛИВО
+  });
+
   const data = await res.json();
 
   if(data.ok){

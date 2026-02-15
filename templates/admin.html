@@ -17,6 +17,9 @@
 <div class="booking-card">
 
 <h2>Усі записи</h2>
+<button class="next-btn" onclick="logout()" style="margin-bottom:20px">
+Вийти
+</button>
 <div id="bookings"></div>
 
 </div>
@@ -68,6 +71,12 @@ async function cancelBooking(id){
 }
 
 loadBookings();
+</script>
+<script>
+async function logout(){
+  await fetch("/logout",{credentials:"include"});
+  window.location="/";
+}
 </script>
 
 </body>
