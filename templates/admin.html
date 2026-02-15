@@ -1,189 +1,73 @@
-<a href="/calendar">📅 Календар записів</a>
-<br><br>
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
 <meta charset="UTF-8">
-<title>Адмін панель</title>
-
-<style>
-body{font-family:Arial;padding:40px;background:#0f172a;color:#e2e8f0}
-a{color:#38bdf8}
-
-.filters{margin:20px 0;display:flex;gap:10px}
-.filters button{background:#334155;color:white;padding:8px 14px;border-radius:8px}
-.filters button.active{background:#38bdf8}
-
-.stats{display:flex;gap:20px;margin:25px 0}
-.stat-card{background:#1e293b;padding:15px 25px;border-radius:12px}
-.stat-card h3{margin:0;font-size:28px}
-.stat-card p{margin:5px 0 0;color:#94a3b8}
-
-.booking-card{
- background:#1e293b;border:1px solid #334155;
- padding:15px;margin:12px 0;border-radius:12px;width:360px;
-}
-
-.admin-buttons{display:flex;gap:10px;margin-top:12px}
-button{border:none;padding:6px 12px;border-radius:8px;cursor:pointer}
-.confirm{background:#22c55e;color:white}
-.cancel{background:#f59e0b;color:white}
-.delete{background:#ef4444;color:white}
-
-.status-confirmed{color:#4ade80;font-weight:bold}
-.status-pending{color:#facc15;font-weight:bold}
-.status-cancelled{color:#f87171;font-weight:bold}
-
-#toast{position:fixed;top:20px;right:20px;z-index:999}
-.toast-msg{background:#1e293b;color:white;padding:12px 18px;margin-bottom:10px;border-radius:10px}
-.toast-success{border-left:5px solid #22c55e}
-.toast-error{border-left:5px solid #ef4444}
-</style>
+<title>Admin panel</title>
+<link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
 
 <body>
 
-<h1>📊 Адмін панель записів</h1>
-<a href="/">⬅️ На головну</a>
+<header class="header">
+    <div class="logo">🔐 Admin panel</div>
+    <a href="/" class="admin-link">На сайт</a>
+</header>
 
-<div class="filters">
-<button onclick="setFilter('all')">Усі</button>
-<button onclick="setFilter('pending')">Очікують</button>
-<button onclick="setFilter('confirmed')">Підтверджені</button>
-<button onclick="setFilter('cancelled')">Скасовані</button>
-<button onclick="setFilter('today')">Сьогодні</button>
-</div>
+<section class="booking-container">
+<div class="booking-card">
 
-<input id="searchInput" placeholder="🔍 Пошук по імені або телефону..." oninput="loadAdminBookings()"
-style="margin-top:15px;padding:10px;width:350px;border-radius:8px;border:none;background:#1e293b;color:white">
-
-<input type="date" id="datePicker" onchange="loadAdminBookings()"
-style="margin-top:10px;padding:10px;border-radius:8px;border:none;background:#1e293b;color:white">
-
-<div id="stats" class="stats"></div>
+<h2>Усі записи</h2>
 <div id="bookings"></div>
-<div id="toast"></div>
+
+</div>
+</section>
 
 <script>
-let currentFilter="all";
-loadAdminBookings();
+async function loadBookings(){
+    const res = await fetch("/admin/bookings");
+    const data = await res.json();
 
-function showToast(text,type="success"){
- const msg=document.createElement("div");
- msg.className=`toast-msg toast-${type}`;
- msg.innerText=text;
- document.getElementById("toast").appendChild(msg);
- setTimeout(()=>msg.remove(),2500);
-}
+    const box = document.getElementById("bookings");
+    box.innerHTML = "";
 
-function getStatusUA(status){
- if(status==="pending")return"Очікує підтвердження";
- if(status==="confirmed")return"Підтверджено";
- if(status==="cancelled")return"Скасовано";
- return status;
-}
+    data.forEach(b => {
+        const div = document.createElement("div");
+        div.className="card";
+        div.style.marginTop="20px";
 
-function setFilter(filter){
- currentFilter=filter;
- loadAdminBookings();
-}
+        let buttons = "";
 
-function renderStats(bookings){
- const today=new Date().toDateString();
- const tomorrowDate=new Date();tomorrowDate.setDate(tomorrowDate.getDate()+1);
- const tomorrow=tomorrowDate.toDateString();
+        if(b.status === "pending"){
+            buttons = `
+                <button onclick="confirmBooking(${b.id})" class="next-btn">✔ Підтвердити</button>
+                <button onclick="cancelBooking(${b.id})" class="next-btn" style="background:#ef4444">✖ Скасувати</button>
+            `;
+        }
 
- document.getElementById("stats").innerHTML=`
-  <div class="stat-card"><h3>${bookings.filter(b=>new Date(b.datetime).toDateString()===today).length}</h3><p>Сьогодні</p></div>
-  <div class="stat-card"><h3>${bookings.filter(b=>new Date(b.datetime).toDateString()===tomorrow).length}</h3><p>Завтра</p></div>
-  <div class="stat-card"><h3>${bookings.filter(b=>b.status==="pending").length}</h3><p>Очікують</p></div>
-  <div class="stat-card"><h3>${bookings.length}</h3><p>Усього</p></div>
- `;
-}
+        div.innerHTML = `
+            <b>${b.client_name}</b><br>
+            📞 ${b.phone}<br>
+            ✂️ ${b.service}<br>
+            🕒 ${b.datetime}<br>
+            <b>Статус: ${b.status}</b><br>
+            ${buttons}
+        `;
 
-async function loadAdminBookings(){
- const res=await fetch("/admin/bookings",{credentials:"include"});
- if(res.status!==200){document.getElementById("bookings").innerHTML="Нема доступу";return;}
-
- let bookings=await res.json();
- renderStats(bookings);
-
- const searchInput=document.getElementById("searchInput");
- const search=searchInput?searchInput.value.toLowerCase():"";
- if(search){
-  bookings=bookings.filter(b=>b.client_name.toLowerCase().includes(search)||b.phone.toLowerCase().includes(search));
- }
-
- const dateInput=document.getElementById("datePicker");
- const selectedDate=dateInput?dateInput.value:"";
- if(selectedDate){
-  bookings=bookings.filter(b=>new Date(b.datetime).toISOString().split("T")[0]===selectedDate);
- }
-
- if(currentFilter==="pending")bookings=bookings.filter(b=>b.status==="pending");
- if(currentFilter==="confirmed")bookings=bookings.filter(b=>b.status==="confirmed");
- if(currentFilter==="cancelled")bookings=bookings.filter(b=>b.status==="cancelled");
- if(currentFilter==="today"){
-   const today=new Date().toDateString();
-   bookings=bookings.filter(b=>new Date(b.datetime).toDateString()===today);
- }
-
- const container=document.getElementById("bookings");
- container.innerHTML="";
-
- const today=new Date().toDateString();
- const tomorrowDate=new Date();tomorrowDate.setDate(tomorrowDate.getDate()+1);
- const tomorrow=tomorrowDate.toDateString();
-
- let todayList=[],tomorrowList=[],futureList=[];
- bookings.forEach(b=>{
-  const d=new Date(b.datetime).toDateString();
-  if(d===today)todayList.push(b);
-  else if(d===tomorrow)tomorrowList.push(b);
-  else futureList.push(b);
- });
-
- function renderSection(title,list){
-  if(list.length===0)return;
-  container.innerHTML+=`<h2 style="margin-top:30px">${title}</h2>`;
-  list.forEach(b=>{
-   container.innerHTML+=`
-   <div class="booking-card">
-     <p><b>ID:</b> ${b.id}</p>
-     <p><b>Ім'я:</b> ${b.client_name}</p>
-     <p><b>Телефон:</b> ${b.phone}</p>
-     <p><b>Послуга:</b> ${b.service}</p>
-     <p><b>Дата:</b> ${new Date(b.datetime).toLocaleString()}</p>
-     <p><b>Статус:</b> <span class="status-${b.status}">${getStatusUA(b.status)}</span></p>
-     <div class="admin-buttons">
-      <button class="confirm" onclick="confirmBooking(${b.id})">✔</button>
-      <button class="cancel" onclick="cancelBooking(${b.id})">✖</button>
-      <button class="delete" onclick="deleteBooking(${b.id})">🗑</button>
-     </div>
-   </div>`;
-  });
- }
-
- renderSection("📅 Сьогодні",todayList);
- renderSection("📅 Завтра",tomorrowList);
- renderSection("📅 Майбутні записи",futureList);
+        box.appendChild(div);
+    });
 }
 
 async function confirmBooking(id){
- await fetch(`/booking/${id}/confirm`,{method:"PUT",credentials:"include"});
- showToast("Запис підтверджено ✔");
- loadAdminBookings();
+    await fetch(`/booking/${id}/confirm`, {method:"PUT"});
+    loadBookings();
 }
+
 async function cancelBooking(id){
- await fetch(`/booking/${id}/cancel`,{method:"PUT",credentials:"include"});
- showToast("Запис скасовано","error");
- loadAdminBookings();
+    await fetch(`/booking/${id}/cancel`, {method:"PUT"});
+    loadBookings();
 }
-async function deleteBooking(id){
- await fetch(`/booking/${id}`,{method:"DELETE",credentials:"include"});
- showToast("Запис видалено","error");
- loadAdminBookings();
-}
+
+loadBookings();
 </script>
 
 </body>
