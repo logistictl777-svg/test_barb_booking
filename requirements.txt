@@ -6,3 +6,5 @@ requests
 apscheduler
 python-multipart
 itsdangerous
+requests
+apscheduler
