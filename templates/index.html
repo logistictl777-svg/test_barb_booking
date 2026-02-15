@@ -1,62 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>Barber Booking</title>
 <link rel="stylesheet" href="/templates/style.css">
-
-<style>
-body{font-family:Arial;max-width:600px;margin:auto}
-input,button,select{width:100%;padding:10px;margin:5px 0}
-.card{border:1px solid #ccc;padding:10px;margin:10px 0}
-.time-slot{display:inline-block;padding:10px 15px;margin:5px;border-radius:10px;background:#1e293b;color:white;cursor:pointer}
-.time-slot.selected{background:#22c55e}
-</style>
 </head>
 
 <body>
 
-<h1>💈 Онлайн запис до барбера</h1>
+<!-- HERO -->
+<div class="hero">
+    <h1>💈 Barber Booking</h1>
+    <p>Онлайн запис за 30 секунд</p>
+</div>
 
 <!-- LOGIN -->
-<h3>🔐 Вхід адміністратора</h3>
-<input type="password" id="adminPassword" placeholder="Пароль">
-<button onclick="login()">Увійти</button>
-<button onclick="logout()">Вийти</button>
+<div id="loginBox">
+    <h3>🔐 Вхід адміністратора</h3>
+    <input type="password" id="adminPassword" placeholder="Пароль">
+    <button onclick="login()">Увійти</button>
+    <button onclick="logout()">Вийти</button>
+</div>
 
 <a href="/admin">🔐 Перейти в адмінку</a>
 <hr>
 
+<div class="container">
+
+<div class="card">
 <h2>Новий запис</h2>
 
 <select id="service">
-<option>Стрижка</option>
-<option>Борода</option>
-<option>Стрижка + Борода</option>
+    <option>Стрижка</option>
+    <option>Борода</option>
+    <option>Стрижка + Борода</option>
 </select>
 
 <input id="name" placeholder="Ваше ім'я">
 <input id="phone" placeholder="Телефон">
-
 <input id="date" type="date">
-<h3>⏰ Виберіть час</h3>
 
-<div id="messageBox" style="display:none"></div>
+<h3>⏰ Виберіть час</h3>
+<div id="timeSlots"></div>
+<input type="hidden" id="selectedTime">
+
+<button class="main-btn" onclick="createBooking()">Записатись</button>
+<div id="messageBox" style="display:none" class="success-msg"></div>
+</div>
 
 <h2>Список записів</h2>
 <div id="list"></div>
 
+</div>
+
 <script>
 let messageTimer=null;
-let editingId=null;
 let isAdmin=false;
 
 ////////////////////////////////////////////////
-// обмеження календаря (30 днів вперед)
+// обмеження календаря
 ////////////////////////////////////////////////
 const today=new Date();
 const maxDate=new Date();
 maxDate.setDate(today.getDate()+30);
-
 document.getElementById("date").min=today.toISOString().split("T")[0];
 document.getElementById("date").max=maxDate.toISOString().split("T")[0];
 
@@ -72,7 +78,7 @@ function showMessage(text){
 }
 
 ////////////////////////////////////////////////
-// ADMIN CHECK
+// перевірка адміна
 ////////////////////////////////////////////////
 async function checkAdmin(){
  const res=await fetch("/check-admin");
@@ -82,7 +88,7 @@ async function checkAdmin(){
 }
 
 ////////////////////////////////////////////////
-// робочі години барбера
+// доступні години
 ////////////////////////////////////////////////
 async function loadTimes(){
  const date=document.getElementById("date").value;
@@ -183,7 +189,7 @@ async function deleteBooking(id){
 }
 
 ////////////////////////////////////////////////
-// login logout
+// LOGIN / LOGOUT
 ////////////////////////////////////////////////
 async function login(){
  const password=document.getElementById("adminPassword").value;
