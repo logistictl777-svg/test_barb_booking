@@ -15,7 +15,12 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-app.add_middleware(SessionMiddleware, secret_key="secret")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="super-secret-key",
+    https_only=True,
+    same_site="none"
+)
 
 Appointment.metadata.create_all(bind=engine)
 
