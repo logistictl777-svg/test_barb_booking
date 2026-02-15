@@ -52,15 +52,18 @@ def start_scheduler():
     scheduler.start()
 
 # ---------- PAGES ----------
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 @app.get("/",response_class=HTMLResponse)
 def home(request:Request):
     return templates.TemplateResponse("index.html",{"request":request})
 
-@app.get("/admin",response_class=HTMLResponse)
-def admin(request:Request):
+@app.get("/admin", response_class=HTMLResponse)
+def admin(request: Request):
     if not request.session.get("admin"):
-        return RedirectResponse("/")
-    return templates.TemplateResponse("admin.html",{"request":request})
+        return RedirectResponse("/login")  # ← ОЦЕ ВАЖЛИВО
+    return templates.TemplateResponse("admin.html", {"request": request})
 
 # ---------- AUTH ----------
 @app.post("/login")
