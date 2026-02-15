@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
 <meta charset="UTF-8">
 <title>Barber Booking</title>
@@ -8,63 +8,71 @@
 
 <body>
 
-<!-- HEADER -->
 <header class="header">
     <div class="logo">💈 BarberShop</div>
     <a href="/admin" class="admin-link">Admin login</a>
 </header>
 
-<!-- HERO -->
 <section class="hero">
     <h1>Запишись до барбера онлайн 💈</h1>
-    <p>Обери послугу та час за 30 секунд</p>
-    <button class="cta-btn" onclick="document.getElementById('booking').scrollIntoView({behavior:'smooth'})">
-        Записатися зараз
-    </button>
+    <p>Обери послугу та час за 30 секунд без дзвінків</p>
+    <button class="cta-btn" onclick="scrollToBooking()">Записатися зараз</button>
 </section>
 
-<!-- BOOKING -->
 <section id="booking" class="booking-container">
 <div class="booking-card">
 
-<div class="progress">Service → Time → Details</div>
+<div class="progress">Service → Date → Time → Confirm</div>
 
 <h2>Оберіть послугу</h2>
 
 <div class="services-grid">
-  <div class="service-card" onclick="selectService('Стрижка')">Стрижка<span>30 хв · 25€</span></div>
-  <div class="service-card" onclick="selectService('Борода')">Борода<span>20 хв · 15€</span></div>
-  <div class="service-card popular" onclick="selectService('Стрижка + Борода')">Combo 🔥<span>45 хв · 35€</span></div>
+  <div class="service-card" onclick="selectService(this,'Стрижка')">
+    Стрижка
+    <span>30 хв · 25€</span>
+  </div>
+
+  <div class="service-card" onclick="selectService(this,'Борода')">
+    Борода
+    <span>20 хв · 15€</span>
+  </div>
+
+  <div class="service-card popular" onclick="selectService(this,'Стрижка + Борода')">
+    Combo 🔥
+    <span>45 хв · 35€</span>
+  </div>
 </div>
 
 <input type="hidden" id="service">
 
-<h2 style="margin-top:40px">Ваші контакти</h2>
+<h2>Ваші контакти</h2>
 <input id="name" placeholder="Ваше ім'я">
 <input id="phone" placeholder="Телефон">
 
-<h2 style="margin-top:30px">Дата</h2>
+<h2>Оберіть дату</h2>
 <input id="date" type="date">
 
-<h2>⏰ Виберіть час</h2>
+<h2>Оберіть час</h2>
 <div id="timeSlots"></div>
 <input type="hidden" id="selectedTime">
 
 <button class="next-btn" onclick="createBooking()">Підтвердити запис</button>
-
 <div id="messageBox" style="display:none" class="success-msg"></div>
 
 </div>
 </section>
 
 <script>
-let messageTimer=null;
-let isAdmin=false;
+function scrollToBooking(){
+ document.getElementById("booking").scrollIntoView({behavior:'smooth'});
+}
 
-function selectService(service){
+let messageTimer=null;
+
+function selectService(el,service){
  document.getElementById("service").value=service;
  document.querySelectorAll(".service-card").forEach(c=>c.style.border="1px solid #1e293b");
- event.currentTarget.style.border="2px solid #22c55e";
+ el.style.border="2px solid #22c55e";
 }
 
 const today=new Date();
@@ -78,7 +86,7 @@ function showMessage(text){
  box.innerText=text;
  box.style.display="block";
  clearTimeout(messageTimer);
- messageTimer=setTimeout(()=>box.style.display="none",2000);
+ messageTimer=setTimeout(()=>box.style.display="none",2500);
 }
 
 async function loadTimes(){
